@@ -1,4 +1,3 @@
 # Midterm Project
- I'm weak
+Pseudocode is here:
  
- hohohoho
