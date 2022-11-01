@@ -91,10 +91,13 @@ public:
         if(schedule.assignedSchedule[num][day]) return;
         for(int j = 1; j <= schedule.nK; j++){
             int tmpCon = schedule.shiftContribution[day][j];
-            if(isNightShift(j, schedule.shiftType)){
+            if(isNightShift(j, schedule.shiftType))
                 for(int k = max(0, day - 6); k <= min(schedule.nJ - 1, day + 6); k++)
-                    if(isNightShift(schedule.assignedSchedule[num][k], schedule.shiftType)) tmpCon -= w2;
-            }
+                    if(isNightShift(schedule.assignedSchedule[num][k], schedule.shiftType)){
+                        int Lday = min(k, day), Rday = max(k, day);
+                        tmpCon -= w2 * (min(Lday - max(Rday - 6, 0), max(Lday + 6, schedule.nJ - 1) - Rday) + 1);
+                    }
+            
             if(request[num][day]) tmpCon -= w1;
             employeeBestContribution[num][day] = max(make_pair(tmpCon, -j), employeeBestContribution[num][day]);
         }
