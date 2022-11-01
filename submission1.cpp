@@ -95,7 +95,7 @@ public:
                 for(int k = max(0, day - 6); k <= min(schedule.nJ - 1, day + 6); k++)
                     if(isNightShift(schedule.assignedSchedule[num][k], schedule.shiftType)){
                         int Lday = min(k, day), Rday = max(k, day);
-                        tmpCon -= w2 * (min(Lday - max(Rday - 6, 0), max(Lday + 6, schedule.nJ - 1) - Rday) + 1);
+                        tmpCon -= w2 * (min(Lday, schedule.nJ - 7) - max(Rday - 6, 0) + 1);
                     }
             
             if(request[num][day]) tmpCon -= w1;
