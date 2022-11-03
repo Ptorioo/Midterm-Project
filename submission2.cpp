@@ -36,7 +36,7 @@ public:
             int tmp = 0;
             for(int k = 0; k < 24; k++)
                 tmp += (shiftType[j][k] && demand[day][k]);
-            shiftContribution[day][shift] = tmp;
+            shiftContribution[day][j] = tmp;
         }
     }
 
@@ -57,13 +57,9 @@ public:
     vector<vector<bool>>& request;
     vector<vector<pair<int,int>>> employeeBestContribution;
 
-    Employee_General(int& _nI, int& _nJ, int& _nK, int& _L, int& _w1, int& _w2, vector<vector<bool>>& _request, Schedule schedule): nI(_nI), nJ(_nJ), nK(_nK), L(_L), w1(_w1), w2(_w2), request(_request){
+    Employee_General(int& _nI, int& _nJ, int& _nK, int& _L, int& _w1, int& _w2, vector<vector<bool>>& _request): nI(_nI), nJ(_nJ), nK(_nK), L(_L), w1(_w1), w2(_w2), request(_request){
         employeeBestContribution.resize(nI);
-        for(vector<pair<int,int>>& v:employeeBestContribution) v.resize(nJ);
-        for(int i = 0; i < nI; i++)
-            for(int j = 0; j < nJ; j++)
-                employeeBestContribution[i][j] = make_pair(*max_element(begin(schedule.shiftContribution[j]), end(schedule.shiftContribution[j])),
-                                                            (max_element(begin(schedule.shiftContribution[j]), end(schedule.shiftContribution[j])) - begin(schedule.shiftContribution[j])) * (-1));
+        for(vector<pair<int,int>>& v:employeeBestContribution) v.resize(nJ, make_pair(0, 0));
     }
 
     void update(int num, int day, Schedule& schedule){
@@ -90,24 +86,31 @@ public:
 
         if(schedule.assignedSchedule[num][day]) return;
         for(int j = 1; j <= schedule.nK; j++){
-            int tmpCon = schedule.shiftContribution[day][j];
-            if(isNightShift(j, schedule.shiftType))
-                for(int k = max(0, day - 6); k <= min(schedule.nJ - 1, day + 6); k++)
-                    if(isNightShift(schedule.assignedSchedule[num][k], schedule.shiftType)){
-                        int Lday = min(k, day), Rday = max(k, day);
-                        tmpCon -= w2 * (min(Lday, schedule.nJ - 7) - max(Rday - 6, 0) + 1);
+            int tmpCon = schedule.shiftContribution[day][j] - request[num][day] * w1;
+            if(isNightShift(j, schedule.shiftType)){
+                int nightShiftCnt = 0;
+                for(int start = max(0, day - 6); start <= min(day, schedule.nJ - 7); start++){
+                    if(start == max(0, day - 6))
+                        for(int k = start; k <= start + 6; k++) nightShiftCnt += isNightShift(schedule.assignedSchedule[num][k], schedule.shiftType);
+                    else{
+                        nightShiftCnt -= isNightShift(schedule.assignedSchedule[num][start - 1], schedule.shiftType);
+                        nightShiftCnt += isNightShift(schedule.assignedSchedule[num][start + 6], schedule.shiftType);
                     }
+
+                    if(nightShiftCnt) tmpCon -= w2;
+                }
+            }
             
-            if(request[num][day]) tmpCon -= w1;
             employeeBestContribution[num][day] = max(make_pair(tmpCon, -j), employeeBestContribution[num][day]);
         }
     }
 
     void getBestAssignment(int& bestEmp, int& bestDay, int& bestShift, int& bestCon){
-        bestCon = 0;
+        pair<int,int> bestAssi = make_pair(0,0);
         for(int i = 0; i < nI; i++) for(int j = 0; j < nJ; j++)
-            if(employeeBestContribution[i][j].first > bestCon){
-                bestCon = employeeBestContribution[i][j].first;
+            if(employeeBestContribution[i][j] > bestAssi){
+                bestAssi = employeeBestContribution[i][j];
+                bestCon = bestAssi.first;
                 bestEmp = i;
                 bestDay = j;
                 bestShift = -employeeBestContribution[i][j].second;
@@ -121,7 +124,7 @@ public:
     vector<vector<bool>>& request;
     vector<vector<tuple<int,bool,bool,int>>> employeeBestContribution;
 
-    Employee_Priority(int& _nI, int& _nJ, int& _nK, int& _L, int& _w1, int& _w2, vector<vector<bool>>& _request, Schedule& schedule): nI(_nI), nJ(_nJ), nK(_nK), L(_L), w1(_w1), w2(_w2), request(_request){
+    Employee_Priority(int& _nI, int& _nJ, int& _nK, int& _L, int& _w1, int& _w2, vector<vector<bool>>& _request): nI(_nI), nJ(_nJ), nK(_nK), L(_L), w1(_w1), w2(_w2), request(_request){
         employeeBestContribution.resize(nI);
         for(auto& v:employeeBestContribution) v.resize(nJ, tuple<int,bool,bool,int>(0, 0, 0, 0));
     }
@@ -150,16 +153,22 @@ public:
 
         if(schedule.assignedSchedule[num][day]) return;
         for(int j = 1; j <= schedule.nK; j++){
-            int tmpCon = schedule.shiftContribution[day][j];
-            if(isNightShift(j, schedule.shiftType))
-                for(int k = max(0, day - 6); k <= min(schedule.nJ - 1, day + 6); k++)
-                    if(isNightShift(schedule.assignedSchedule[num][k], schedule.shiftType)){
-                        int Lday = min(k, day), Rday = max(k, day);
-                        tmpCon -= w2 * (min(Lday, schedule.nJ - 7) - max(Rday - 6, 0) + 1);
+            int tmpCon = schedule.shiftContribution[day][j] - request[num][day] * w1;
+            if(isNightShift(j, schedule.shiftType)){
+                int nightShiftCnt = 0;
+                for(int start = max(0, day - 6); start <= min(day, schedule.nJ - 7); start++){
+                    if(start == max(0, day - 6))
+                        for(int k = start; k <= start + 6; k++) nightShiftCnt += isNightShift(schedule.assignedSchedule[num][k], schedule.shiftType);
+                    else{
+                        nightShiftCnt -= isNightShift(schedule.assignedSchedule[num][start - 1], schedule.shiftType);
+                        nightShiftCnt += isNightShift(schedule.assignedSchedule[num][start + 6], schedule.shiftType);
                     }
-            
-            if(request[num][day]) tmpCon -= w1;
-            employeeBestContribution[num][day] = max(employeeBestContribution[num][day], make_tuple(tmpCon, !isNightShift(j, schedule.shiftType), !request[num][day], -j));
+
+                    if(nightShiftCnt) tmpCon -= w2;
+                }
+            }
+
+            employeeBestContribution[num][day] = max(employeeBestContribution[num][day], make_tuple(tmpCon, !request[num][day], !isNightShift(j, schedule.shiftType), -j));
         }
     }
 
@@ -231,8 +240,9 @@ int main(){
     }
 
     Schedule schedule1(nI, nJ, nK, shiftType, demand), schedule2(nI, nJ, nK, shiftType, demand);
-    Employee_General employee1(nI, nJ, nK, L, w1, w2, request, schedule1);
-    Employee_Priority employee2(nI, nJ, nK, L, w1, w2, request, schedule2);
+    Employee_General employee1(nI, nJ, nK, L, w1, w2, request);
+    Employee_Priority employee2(nI, nJ, nK, L, w1, w2, request);
+    for(int i = 0; i < nI; i++) for(int j = 0; j < nJ; j++) employee1.update(i, j, schedule1);
     for(int i = 0; i < nI; i++) for(int j = 0; j < nJ; j++) employee2.update(i, j, schedule2);
 
     while(true){
@@ -255,6 +265,25 @@ int main(){
         for(int i = max(0, bestDay - 6); i <= min(bestDay + 6, nJ - 1); i++)
             employee2.update(bestEmp, i, schedule2);
         for(int i = 0; i < nI; i++) employee2.update(i, bestDay, schedule2);
+
+        // just for target function debugging
+        /*
+        int targetFuncTest = 0;
+        for(vector<int>& v:schedule2.demand) for(int& i:v) targetFuncTest += i;
+
+        for(int i = 0; i < nI; i++) for(int j = 0; j <= nJ - 7; j++){
+            int nightShift = 0;
+            for(int k = j; k <= j + 6; k++)
+                if(isNightShift(schedule2.assignedSchedule[i][k], shiftType)) nightShift++;
+            targetFuncTest += w2 * max(0, nightShift - 1);
+        }
+
+        for(int i = 0; i < nI; i++)
+            for(int j = 0; j < nJ; j++)
+                if(schedule2.assignedSchedule[i][j] && request[i][j]) targetFuncTest += w1;
+        
+        assert(targetFuncTest == schedule2.targetFunction);
+        */
     }
 
     if(schedule1.targetFunction < schedule2.targetFunction) schedule1.output();
