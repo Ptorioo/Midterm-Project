@@ -46,32 +46,32 @@ int main(){
 			employee2.update(i, j, schedule2)
 	
 	while(true){
-        employee1.getBestAssignment(bestEmp, bestDay, bestShift, bestCon)
+        	employee1.getBestAssignment(bestEmp, bestDay, bestShift, bestCon)
         
-        if(bestCon <= 0)
+        	if(bestCon <= 0)
 			break;
-        else
+        	else
 			schedule1.assignShift(bestEmp, bestDay, bestShift, bestCon)
         
-        for i from max(0, bestDay - 6) to min(bestDay + 6, nJ - 1)
-            employee1.update(bestEmp, i, schedule1)
+        	for i from max(0, bestDay - 6) to min(bestDay + 6, nJ - 1)
+            		employee1.update(bestEmp, i, schedule1)
         
-        for i to nI
+        	for i to nI
 			employee1.update(i, bestDay, schedule1)
 	}
 	
 	while(true){
 		employee2.getBestAssignment(bestEmp, bestDay, bestShift, bestCon)
 		
-        if(bestCon <= 0)
+        	if(bestCon <= 0)
 			break;
-        else
+        	else
 			schedule2.assignShift(bestEmp, bestDay, bestShift, bestCon)
         
-        for i from max(0, bestDay - 6) to min(bestDay + 6, nJ - 1)
-            employee2.update(bestEmp, i, schedule2)
+        	for i from max(0, bestDay - 6) to min(bestDay + 6, nJ - 1)
+            		employee2.update(bestEmp, i, schedule2)
         
-        for i to nI
+        	for i to nI
 			employee2.update(i, bestDay, schedule2)
 	}
 	
