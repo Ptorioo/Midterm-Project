@@ -71,7 +71,7 @@ public:
         employeeBestContribution[num][day].first = -1;
         int daysWorking = 0;
         for(int& i:schedule.assignedSchedule[num]) daysWorking += (i != 0);
-        if(daysWorking >= schedule.nJ - L){
+        if(daysWorking >= nJ - L){
             for(int i = 0; i < nJ; i++) employeeBestContribution[num][i].first = -1;
             return;
         }
@@ -81,18 +81,18 @@ public:
             if(!schedule.assignedSchedule[num][j]) break;
             consecWork++;
         }
-        for(int j = day + 1; j <= min(schedule.nJ - 1, day + 6); j++){
+        for(int j = day + 1; j <= min(nJ - 1, day + 6); j++){
             if(!schedule.assignedSchedule[num][j]) break;
             consecWork++;
         }
         if(consecWork >= 7) return;
 
         if(schedule.assignedSchedule[num][day]) return;
-        for(int j = 1; j <= schedule.nK; j++){
+        for(int j = 1; j <= nK; j++){
             int tmpCon = schedule.shiftContribution[day][j] - request[num][day] * w1;
             if(isNightShift(j, schedule.shiftType)){
                 int nightShiftCnt = 0;
-                for(int start = max(0, day - 6); start <= min(day, schedule.nJ - 7); start++){
+                for(int start = max(0, day - 6); start <= min(day, nJ - 7); start++){
                     if(start == max(0, day - 6))
                         for(int k = start; k <= start + 6; k++) nightShiftCnt += isNightShift(schedule.assignedSchedule[num][k], schedule.shiftType);
                     else{
@@ -132,7 +132,7 @@ public:
         impact -= (request[num][day] && currShift) * w1;
         if(isNightShift(currShift, schedule.shiftType)){
             int nightShiftCnt = 0;
-            for(int start = max(0, day - 6); start <= min(day, schedule.nJ - 7); start++){
+            for(int start = max(0, day - 6); start <= min(day, nJ - 7); start++){
                 if(start == max(0, day - 6))
                     for(int k = start; k <= start + 6; k++) nightShiftCnt += isNightShift(schedule.assignedSchedule[num][k], schedule.shiftType);
                 else{
