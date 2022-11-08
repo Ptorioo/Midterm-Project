@@ -37,12 +37,12 @@ int main(){
 	
 	Schedule schedule1(nI, nJ, nK, shiftType, demand), schedule2(nI, nJ, nK, shiftType, demand)
     
-	for i to nI
-		for j to nJ
+	for i from 0 to nI
+		for j from 0 to nJ
 			employee1.update(i, j, schedule1)
 	
-    	for i to nI
-		for j to nJ
+    	for i from 0 to nI
+		for j from 0 to nJ
 			employee2.update(i, j, schedule2)
 	
 	while(true){
@@ -56,7 +56,7 @@ int main(){
         	for i from max(0, bestDay - 6) to min(bestDay + 6, nJ - 1)
             		employee1.update(bestEmp, i, schedule1)
         
-        	for i to nI
+        	for i from 0 to nI
 			employee1.update(i, bestDay, schedule1)
 	}
 	
@@ -71,7 +71,7 @@ int main(){
         	for i from max(0, bestDay - 6) to min(bestDay + 6, nJ - 1)
             		employee2.update(bestEmp, i, schedule2)
         
-        	for i to nI
+        	for i from 0 to nI
 			employee2.update(i, bestDay, schedule2)
 	}
 	
