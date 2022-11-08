@@ -41,7 +41,7 @@ int main(){
 		for j to nJ
 			employee1.update(i, j, schedule1)
 	
-    for i to nI
+    	for i to nI
 		for j to nJ
 			employee2.update(i, j, schedule2)
 	
@@ -77,7 +77,7 @@ int main(){
 	
 	if schedule1.targetFunction < schedule2.targetFunction
 		schedule1.output()
-    else
+    	else
 		schedule2.output()
 }
 ```
