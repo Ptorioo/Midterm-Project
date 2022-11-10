@@ -5,6 +5,7 @@ using namespace std;
 const int INF = 0x3f3f3f3f;
 const int maxnI = 105, maxnJ = 35, maxnK = 35, nPeriod = 25;
 
+// TODO: Improve Messy Structure
 class Schedule{
 public:
     const int &nI, &nJ, &nK;
@@ -51,7 +52,10 @@ public:
 };
 
 bool isNightShift(int shift, const vector<vector<int>>& shiftType){
-    return (accumulate(begin(shiftType[shift]) + 18, end(shiftType[shift]), 0) > 0);
+    static vector<int> isNightShiftRes(35, -1);
+    if(isNightShiftRes[shift] == -1)
+        return isNightShiftRes[shift] = (accumulate(begin(shiftType[shift]) + 18, end(shiftType[shift]), 0) > 0);
+    else return isNightShiftRes[shift];
 }
 
 class Employee{
@@ -218,7 +222,7 @@ int main(){
         for(int i = 0; i < nI; i++) employee.update(i, bestDay, schedule);
     }
 
-    int attempts = 17;
+    int attempts = 14;
     while(attempts--){
         for(int i = nI - 1; i >= 0; i--){
             int origTgtFunc = schedule.targetFunction;
@@ -249,19 +253,19 @@ int main(){
                 for(int d = 0; d < nJ; d++) employee.update(i, d, schedule);
             }
         }
-    }
-    
-    for(int k = 0; k < 3; k++) for(int i = nI - 1; i >= 0; i--) for(int j = nJ - 1; j >= 0; j--){
-        employee.cancelShift(i, j, schedule);
-        employee.employeeBestContribution[i][j] = make_pair(0, 0);
-        employee.update(i, j, schedule);
-        
-        int bestEmp = 0, bestDay = 0, bestShift = 0, bestCon = 0;
-        employee.getBestAssignment(bestEmp, bestDay, bestShift, bestCon, i, i + 1, j, j + 1);
-        if(bestCon <= 0) continue;
-        else schedule.assignShift(bestEmp, bestDay, bestShift, bestCon);
 
-        employee.update(bestEmp, j, schedule);
+        for(int i = nI - 1; i >= 0; i--) for(int j = nJ - 1; j >= 0; j--){
+            employee.cancelShift(i, j, schedule);
+            employee.employeeBestContribution[i][j] = make_pair(0, 0);
+            employee.update(i, j, schedule);
+        
+            int bestEmp = 0, bestDay = 0, bestShift = 0, bestCon = 0;
+            employee.getBestAssignment(bestEmp, bestDay, bestShift, bestCon, i, i + 1, j, j + 1);
+            if(bestCon <= 0) continue;
+            else schedule.assignShift(bestEmp, bestDay, bestShift, bestCon);
+
+            employee.update(bestEmp, j, schedule);
+        }
     }
     
     // just for target function debugging
