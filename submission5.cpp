@@ -1,5 +1,6 @@
 #include<bits/stdc++.h>
 using namespace std;
+//#define DEBUG
 
 /* constants */
 const int INF = 0x3f3f3f3f;
@@ -11,10 +12,10 @@ public:
     const int &nI, &nJ, &nK;
     int targetFunction;
     const vector<vector<int>>& shiftType;
-    vector<vector<int>>& demand;
+    vector<vector<int>> demand;
     vector<vector<int>> shiftContribution, assignedSchedule;
 
-    Schedule(int& _nI, int& _nJ, int& _nK, vector<vector<int>>& _shiftType, vector<vector<int>>& _demand): nI(_nI), nJ(_nJ), nK(_nK), shiftType(_shiftType), demand(_demand){
+    Schedule(int& _nI, int& _nJ, int& _nK, vector<vector<int>>& _shiftType, vector<vector<int>> _demand): nI(_nI), nJ(_nJ), nK(_nK), shiftType(_shiftType), demand(_demand){
         targetFunction = 0;
         shiftContribution.resize(nJ);
         for(vector<int>& v:shiftContribution) v.resize(nK + 1, 0);
@@ -45,7 +46,6 @@ public:
     }
 
     void output(){
-        //cout << "target: " << targetFunction << '\n';
         for(vector<int>& v:assignedSchedule) for(int& i:v)
             cout << i << ",\n"[&i == &(v.back())];
     }
@@ -155,6 +155,55 @@ public:
     }
 };
 
+void greedyAssignment(Schedule& schedule, Employee& employee, int numL, int numR, int dayL, int dayR){
+    while(true){
+        int bestEmp = 0, bestDay = 0, bestShift = 0, bestCon = 0;
+        employee.getBestAssignment(bestEmp, bestDay, bestShift, bestCon, numL, numR, dayL, dayR);
+        if(bestCon <= 0) break;
+        else schedule.assignShift(bestEmp, bestDay, bestShift, bestCon);
+        
+        employee.update(bestEmp, bestDay, schedule);
+        if(numR - numL > 1)  // update other employees
+            for(int i = 0; i < schedule.nI; i++)
+                employee.update(i, bestDay, schedule);
+        if(dayR - dayL > 1)  // update 13 days interval
+            for(int i = max(0, bestDay - 6); i <= min(bestDay + 6, schedule.nJ - 1); i++)
+                employee.update(bestEmp, i, schedule);
+    }
+}
+
+void cancelAndUpdate(Schedule& schedule, Employee& employee, int numL, int numR, int dayL, int dayR){
+    for(int i = numL; i < numR; i++) for(int j = dayL; j < dayR; j++)
+        employee.cancelShift(i, j, schedule);
+    for(int i = numL; i < numR; i++) for(int j = dayL; j < dayR; j++){
+        employee.employeeBestContribution[i][j] = make_pair(0, 0);
+        employee.update(i, j, schedule, (dayR - dayL != schedule.nJ));
+    }
+}
+
+void saveOrRollback(Schedule& schedule, Employee& employee, int numL, int numR, int dayL, int dayR){
+    static vector<vector<int>> oldAssignedSchedule(schedule.nI, vector<int>(schedule.nJ)),
+        oldDemand(schedule.nJ, vector<int>(24));
+
+    static int oldTgtFunc = INF;
+    if(schedule.targetFunction > oldTgtFunc){
+        for(int i = numL; i < numR; i++) for(int j = dayL; j < dayR; j++)
+            schedule.assignedSchedule[i][j] = oldAssignedSchedule[i][j];
+        for(int j = dayL; j < dayR; j++){
+            schedule.demand[j] = oldDemand[j];
+            schedule.updateShiftCon(j);
+        }
+        schedule.targetFunction = oldTgtFunc;
+    }
+    else{
+        for(int i = numL; i < numR; i++) for(int j = dayL; j < dayR; j++)
+            oldAssignedSchedule[i][j] = schedule.assignedSchedule[i][j];
+        for(int j = dayL; j < dayR; j++)
+            oldDemand[j] = schedule.demand[j];
+        oldTgtFunc = schedule.targetFunction;
+    }
+}
+
 int main(){
     cin.tie(0);
     ios_base::sync_with_stdio(0);
@@ -211,65 +260,29 @@ int main(){
     Employee employee(nI, nJ, nK, L, w1, w2, request);
     for(int i = 0; i < nI; i++) for(int j = 0; j < nJ; j++) employee.update(i, j, schedule, 0);
 
-    while(true){
-        int bestEmp = 0, bestDay = 0, bestShift = 0, bestCon = 0;
-        employee.getBestAssignment(bestEmp, bestDay, bestShift, bestCon, 0, nI, 0, nJ);
-        if(bestCon <= 0) break;
-        else schedule.assignShift(bestEmp, bestDay, bestShift, bestCon);
-        
-        for(int i = max(0, bestDay - 6); i <= min(bestDay + 6, nJ - 1); i++)
-            employee.update(bestEmp, i, schedule);
-        for(int i = 0; i < nI; i++) employee.update(i, bestDay, schedule);
-    }
+    /* greedy main proceedure */
+    greedyAssignment(schedule, employee, 0, nI, 0, nJ);
+    saveOrRollback(schedule, employee, 0, nI, 0, nJ);
 
-    int attempts = 14;
+    int attempts = 16;
     while(attempts--){
+        /* employee erase attempt */
         for(int i = nI - 1; i >= 0; i--){
-            int origTgtFunc = schedule.targetFunction;
-            vector<int> origshedule = schedule.assignedSchedule[i];
-            for(int j = 0; j < nJ; j++) employee.cancelShift(i, j, schedule);
-            for(int j = 0; j < nJ; j++){
-                employee.employeeBestContribution[i][j] = make_pair(0, 0);
-                employee.update(i, j, schedule, 0);
-            }
-
-            while(true){
-                int bestEmp = 0, bestDay = 0, bestShift = 0, bestCon = 0;
-                employee.getBestAssignment(bestEmp, bestDay, bestShift, bestCon, i, i + 1, 0, nJ);
-                if(bestCon <= 0) break;
-                else schedule.assignShift(bestEmp, bestDay, bestShift, bestCon);
-
-                for(int d = max(0, bestDay - 6); d <= min(bestDay + 6, nJ - 1); d++)
-                    employee.update(bestEmp, d, schedule);
-            }
-
-            if(origTgtFunc < schedule.targetFunction){  // rollback
-                for(int j = 0; j < nJ; j++) employee.cancelShift(i, j, schedule);
-                for(int j = 0; j < nJ; j++){
-                    employee.employeeBestContribution[i][j] = make_pair(0, 0);
-                    schedule.assignShift(i, j, origshedule[j], 0);
-                }
-                schedule.targetFunction = origTgtFunc;
-                for(int d = 0; d < nJ; d++) employee.update(i, d, schedule);
-            }
+            cancelAndUpdate(schedule, employee, i, i + 1, 0, nJ);
+            greedyAssignment(schedule, employee, i, i + 1, 0, nJ);
+            saveOrRollback(schedule, employee, i, i + 1, 0, nJ);
         }
 
+        /* day erase attempt */
         for(int i = nI - 1; i >= 0; i--) for(int j = nJ - 1; j >= 0; j--){
-            employee.cancelShift(i, j, schedule);
-            employee.employeeBestContribution[i][j] = make_pair(0, 0);
-            employee.update(i, j, schedule);
-        
-            int bestEmp = 0, bestDay = 0, bestShift = 0, bestCon = 0;
-            employee.getBestAssignment(bestEmp, bestDay, bestShift, bestCon, i, i + 1, j, j + 1);
-            if(bestCon <= 0) continue;
-            else schedule.assignShift(bestEmp, bestDay, bestShift, bestCon);
-
-            employee.update(bestEmp, j, schedule);
+            cancelAndUpdate(schedule, employee, i, i + 1, j, j + 1);
+            greedyAssignment(schedule, employee, i, i + 1, j, j + 1);
         }
+        saveOrRollback(schedule, employee, 0, nI, 0, nJ);
     }
     
-    // just for target function debugging
-    /*
+    /* just for target function debugging */
+    #ifdef DEBUG
     int targetFuncTest = 0;
     for(vector<int>& v:schedule.demand) for(int& i:v) targetFuncTest += max(i, 0);
     
@@ -284,9 +297,10 @@ int main(){
         for(int j = 0; j < nJ; j++)
             if(schedule.assignedSchedule[i][j] && request[i][j]) targetFuncTest += w1;
     assert(targetFuncTest == schedule.targetFunction);
-    */
+    #endif
     
     schedule.output();
     //cout << schedule.targetFunction << ' ' << targetFuncTest << '\n';
+
     return 0;
 }
