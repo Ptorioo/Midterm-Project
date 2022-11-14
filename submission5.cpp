@@ -62,11 +62,9 @@ class Employee{
 public:
     const int &nI, &nJ, &nK, &L, &w1, &w2;
     vector<vector<bool>>& request;
-    vector<int> daysWorking;
     vector<vector<pair<int,int>>> employeeBestContribution;
 
     Employee(int& _nI, int& _nJ, int& _nK, int& _L, int& _w1, int& _w2, vector<vector<bool>>& _request): nI(_nI), nJ(_nJ), nK(_nK), L(_L), w1(_w1), w2(_w2), request(_request){
-        daysWorking.resize(nI, 0);
         employeeBestContribution.resize(nI);
         for(vector<pair<int,int>>& v:employeeBestContribution) v.resize(nJ, make_pair(0, 0));
     }
@@ -75,8 +73,10 @@ public:
         if(employeeBestContribution[num][day].first == -1) return;
 
         employeeBestContribution[num][day].first = -1;
+        int daysWorking = 0;
         if(notInitialize){
-            if(daysWorking[num] >= nJ - L){
+            for(int& i:schedule.assignedSchedule[num]) daysWorking += (i != 0);
+            if(daysWorking >= nJ - L){
                 for(int i = 0; i < nJ; i++) employeeBestContribution[num][i].first = -1;
                 return;
             }
@@ -115,11 +115,11 @@ public:
     }
 
     void getBestAssignment(int& bestEmp, int& bestDay, int& bestShift, int& bestCon, int numL, int numR, int dayL, int dayR){
-        pair<pair<int,int>,int> bestAssi = make_pair(make_pair(0,0),0);  // cont, dw, shift
+        pair<int,int> bestAssi = make_pair(0,0);
         for(int i = numL; i < numR; i++) for(int j = dayL; j < dayR; j++){
-            if(make_pair(make_pair(employeeBestContribution[i][j].first, -daysWorking[i]), employeeBestContribution[i][j].second) > bestAssi){
-                bestAssi = make_pair(make_pair(employeeBestContribution[i][j].first, -daysWorking[i]), employeeBestContribution[i][j].second);
-                bestCon = bestAssi.first.first;
+            if(employeeBestContribution[i][j] > bestAssi){
+                bestAssi = employeeBestContribution[i][j];
+                bestCon = bestAssi.first;
                 bestEmp = i;
                 bestDay = j;
                 bestShift = -employeeBestContribution[i][j].second;
@@ -130,7 +130,6 @@ public:
     void cancelShift(int num, int day, Schedule& schedule){
         int impact = 0, currShift = schedule.assignedSchedule[num][day];
         schedule.assignedSchedule[num][day] = 0;
-        daysWorking[num] -= (currShift != 0);
         
         // reverse contribution (impact)
         for(int i = 0; i < 24; i++){
@@ -161,10 +160,7 @@ void greedyAssignment(Schedule& schedule, Employee& employee, int numL, int numR
         int bestEmp = 0, bestDay = 0, bestShift = 0, bestCon = 0;
         employee.getBestAssignment(bestEmp, bestDay, bestShift, bestCon, numL, numR, dayL, dayR);
         if(bestCon <= 0) break;
-        else{
-            schedule.assignShift(bestEmp, bestDay, bestShift, bestCon);
-            employee.daysWorking[bestEmp]++;
-        }
+        else schedule.assignShift(bestEmp, bestDay, bestShift, bestCon);
         
         employee.update(bestEmp, bestDay, schedule);
         if(numR - numL > 1)  // update other employees
@@ -264,7 +260,7 @@ int main(){
     Employee employee(nI, nJ, nK, L, w1, w2, request);
     for(int i = 0; i < nI; i++) for(int j = 0; j < nJ; j++) employee.update(i, j, schedule, 0);
 
-    /* greedy main procedure */
+    /* greedy main proceedure */
     greedyAssignment(schedule, employee, 0, nI, 0, nJ);
     saveOrRollback(schedule, employee, 0, nI, 0, nJ);
 
